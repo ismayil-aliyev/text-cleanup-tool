@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>List Cleaner</title>
+<style>
+  :root {
+    --bg: #F6F7F5;
+    --surface: #FFFFFF;
+    --text: #1C2321;
+    --text-muted: #5B6660;
+    --accent: #2F5D50;
+    --accent-soft: #E7EEEA;
+    --border: #DBE2DD;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 72px;
+  }
+
+  header {
+    margin-bottom: 32px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    line-height: 1.5;
+    max-width: 52ch;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 720px) {
+    .panels { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-head span.label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .panel-head span.count {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  textarea {
+    width: 100%;
+    height: 320px;
+    resize: vertical;
+    border: none;
+    outline: none;
+    padding: 14px;
+    font-family: "SFMono-Regular", Consolas, Menlo, "Liberation Mono", monospace;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text);
+    background: transparent;
+    display: block;
+  }
+
+  textarea:focus {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+
+  textarea::placeholder {
+    color: #9AA6A0;
+  }
+
+  textarea[readonly] {
+    color: var(--text);
+    background: #FBFCFB;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  select {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13.5px;
+    border-radius: 4px;
+  }
+
+  select:focus, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  button {
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  button.primary:hover { background: #274F44; }
+
+  button.secondary {
+    background: var(--surface);
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+
+  button.secondary:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .spacer { flex: 1; }
+
+  .hint {
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>List cleaner</h1>
+      <p>Paste anything copied from Excel, PowerPoint or Word. Line breaks and blank lines are stripped and the items are joined into one list.</p>
+    </header>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="label">Paste</span>
+          <span class="count" id="inCount">0 lines</span>
+        </div>
+        <textarea id="input" placeholder="Requirements and roadmap review
+
+ESG reporting governance
+
+ESG Transformation RFP and recommendation
+
+Private assurance" autofocus></textarea>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="label">Result</span>
+          <span class="count" id="outCount">0 items</span>
+        </div>
+        <textarea id="output" readonly placeholder="Cleaned list appears here"></textarea>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <select id="separator">
+        <option value=", ">Comma</option>
+        <option value="; ">Semicolon</option>
+        <option value=" | ">Pipe</option>
+        <option value="\n">One per line</option>
+      </select>
+      <button class="secondary" id="clearBtn">Clear</button>
+      <div class="spacer"></div>
+      <span class="hint" id="copyHint"></span>
+      <button class="primary" id="copyBtn">Copy result</button>
+    </div>
+  </div>
+
+<script>
+  const input = document.getElementById('input');
+  const output = document.getElementById('output');
+  const separator = document.getElementById('separator');
+  const inCount = document.getElementById('inCount');
+  const outCount = document.getElementById('outCount');
+  const copyBtn = document.getElementById('copyBtn');
+  const copyHint = document.getElementById('copyHint');
+  const clearBtn = document.getElementById('clearBtn');
+
+  function clean() {
+    const raw = input.value;
+    const lineCount = raw.split(/\r?\n/).filter(l => l.trim().length > 0).length;
+    inCount.textContent = lineCount + (lineCount === 1 ? ' line' : ' lines');
+
+    const items = raw
+      .split(/\r?\n|\t/)
+      .map(s => s.trim().replace(/\s+/g, ' '))
+      .filter(s => s.length > 0);
+
+    const sep = separator.value === '\\n' ? '\n' : separator.value;
+    output.value = items.join(sep);
+    outCount.textContent = items.length + (items.length === 1 ? ' item' : ' items');
+  }
+
+  input.addEventListener('input', clean);
+  separator.addEventListener('change', clean);
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    clean();
+    input.focus();
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    if (!output.value) return;
+    try {
+      await navigator.clipboard.writeText(output.value);
+    } catch (e) {
+      output.select();
+      document.execCommand('copy');
+    }
+    copyHint.textContent = 'Copied';
+    setTimeout(() => { copyHint.textContent = ''; }, 1400);
+  });
+
+  clean();
+</script>
+</body>
+</html>
