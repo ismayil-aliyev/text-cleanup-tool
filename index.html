@@ -230,7 +230,8 @@ Private assurance" autofocus></textarea>
     inCount.textContent = lineCount + (lineCount === 1 ? ' line' : ' lines');
 
     const items = raw
-      .split(/\r?\n|\t/)
+      .replace(/\r\n?/g, '\n')
+      .split(/[\n\t]+/)
       .map(s => s.trim().replace(/\s+/g, ' '))
       .filter(s => s.length > 0);
 
